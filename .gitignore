@@ -1,0 +1,8 @@
+.DS_Store
+/node_modules/
+yarn-error.log
+/cypress/screenshots/
+.vscode
+.env
+yarn.lock
+package-lock.json

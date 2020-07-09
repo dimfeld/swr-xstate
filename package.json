@@ -1,0 +1,11 @@
+{
+  "name": "swr-xstate",
+  "version": "1.0.0",
+  "description": "SWR Fetcher implemented using XState",
+  "main": "dist/index.js",
+  "author": "Daniel Imfeld <dimfeld>",
+  "license": "MIT",
+  "dependencies": {
+    "xstate": "^4.11.0"
+  }
+}
