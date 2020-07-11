@@ -58,7 +58,7 @@ interface Context {
   permitted: boolean;
 }
 
-export default function fetcher<
+export function fetcher<
   T
 >(
   {
@@ -91,7 +91,7 @@ export default function fetcher<
       states: {
         // Not permitted to refresh, so ignore everything except the global events that might permit us to refresh.
         notPermitted: {
-          entry: ['clearData', 'clearLastReresh'],
+          entry: ['clearData', 'clearLastRefresh'],
         },
         // Store is disabled, but still permitted to refresh so we honor the FORCE_REFRESH event.
         disabled: {
@@ -103,13 +103,11 @@ export default function fetcher<
           },
         },
         maybeStart: {
-          on: {
-            '': [
-              { cond: 'not_permitted_to_refresh', target: 'notPermitted' },
-              { cond: 'can_enable', target: 'waitingForRefresh' },
-              { target: 'disabled' },
-            ],
-          },
+          always: [
+            { cond: 'not_permitted_to_refresh', target: 'notPermitted' },
+            { cond: 'can_enable', target: 'waitingForRefresh' },
+            { target: 'disabled' },
+          ],
         },
         waitingForRefresh: {
           on: {

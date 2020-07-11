@@ -1,3 +1,4 @@
+// The browser state functions here are mostly adapted from the related functions in https://github.com/vercel/swr/tree/master/src/libs
 export function isDocumentVisible(): boolean {
   if (
     typeof document !== 'undefined' &&
@@ -27,7 +28,7 @@ export interface BrowserState {
   focused: boolean;
 }
 
-export function getState() : BrowserState {
+export function getBrowserState() : BrowserState {
   return {
     online: isOnline(),
     visible: isDocumentVisible(),
@@ -38,7 +39,7 @@ export function getState() : BrowserState {
 const listeners = [];
 
 function refresh() {
-  let state = getState();
+  let state = getBrowserState();
   let error;
 
   for(let listener of listeners) {
@@ -72,7 +73,9 @@ function unsubscribe(cb) {
   }
 }
 
-export function subscribe(cb : (state : BrowserState) => any) {
+export type Unsubscriber = () => void;
+
+export function subscribe(cb : (state : BrowserState) => any) : Unsubscriber {
   if(!listeners.length) {
     window.addEventListener('visibilitychange', refresh);
     window.addEventListener('focus', refresh);
@@ -84,7 +87,7 @@ export function subscribe(cb : (state : BrowserState) => any) {
   listeners.push(cb);
 
   // Call the callback right away with the current state.
-  cb(getState());
+  cb(getBrowserState());
 
   return () => unsubscribe(cb);
-});
+}
