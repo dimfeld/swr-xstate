@@ -83,7 +83,7 @@ export default {
     production && terser(),
 
     html({
-      title: 'A Svelte Website',
+      title: 'SWR-Xstate Example',
       template: ({ attributes, files, publicPath, title }) => {
         let templateFile = fs.readFileSync('src/index.html');
 
