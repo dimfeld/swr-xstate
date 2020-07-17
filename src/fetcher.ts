@@ -6,6 +6,8 @@ export const UNMODIFIED = Symbol('unmodified');
 export interface FetchResult<T> {
   data?: T;
   error?: Error;
+  /** True if this is the stale data. Absent otherwise. */
+  stale? : boolean;
 }
 
 export interface DebugMessage {
@@ -24,6 +26,9 @@ export interface FetcherOptions<
 
   /** A name for this fetcher. Will default to the vaue of `key` if not set. */
   name?: string;
+
+  /** A function that should fetch the "stale" data. */
+  initialData?: (key:string) => Promise<T|null>;
 
   /** `fetcher` is called periodically to retrieve new data */
   fetch: (key: string) => Promise<T|Symbol>,
@@ -70,6 +75,7 @@ export function fetcher<
     receive,
     initialPermitted,
     initialEnabled,
+    initialData,
     debug,
   }: FetcherOptions<T>
 ) {
@@ -86,6 +92,9 @@ export function fetcher<
         BROWSER_ENABLED: {
           target: 'maybeStart',
           actions: 'updateBrowserEnabled',
+        },
+        INITIAL_DATA: {
+          actions: 'receiveInitialData',
         },
       },
       states: {
@@ -178,6 +187,17 @@ export function fetcher<
         updateBrowserEnabled: assign({
           browserEnabled: (ctx, event) => event.data,
         }),
+        receiveInitialData: (context: Context, event) => {
+          if(context.lastRefresh) {
+            // We already got some new data, so don't send the stale data.
+            return;
+          }
+
+          receive({
+            data: event.data,
+            stale: true,
+          });
+        },
         incrementRetry: assign({ retries: (context) => context.retries + 1 }),
         refreshDone: assign((context: Context, event) => {
           let updated = {
@@ -248,6 +268,17 @@ export function fetcher<
     let enabled = state.focused && state.online && state.visible;
     machine.send({ type: 'BROWSER_ENABLED', data: enabled });
   });
+
+  async function fetchInitial() {
+    if(initialData) {
+      let data = await initialData(key);
+      if(data !== null && data !== undefined) {
+        machine.send('INITIAL_DATA', data);
+      }
+    }
+  }
+
+  fetchInitial();
 
   return {
     /** Enable or disable the fetcher. This is usually linked to whether there is anything that actually cares about this
