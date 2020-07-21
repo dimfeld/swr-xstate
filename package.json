@@ -1,6 +1,6 @@
 {
   "name": "swr-xstate",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SWR Fetcher implemented using XState",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

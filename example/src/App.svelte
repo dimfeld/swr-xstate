@@ -1,14 +1,20 @@
 <script lang="typescript">
   import { fetcher as createFetcher } from 'swr-xstate';
   import type { FetchResult } from 'swr-xstate';
+  import Switch from './Switch.svelte';
 
   let fetcherState = { context: {}, toStrings: () => '' };
 
-  let fetcher = createFetcher({
+  let fetcher = createFetcher<string>({
     name: 'test-fetcher',
     key: 'key',
     fetcher: fetchFunc,
     receive: receiveFunc,
+    initialData: () =>
+      Promise.resolve({
+        data: 'https://imfeld.dev/images/projects-httptreemux.svg',
+        timestamp: 1,
+      }),
     autoRefreshPeriod: 5000,
     debug: debugFunc,
     initialEnabled: true,
@@ -17,24 +23,27 @@
 
   let fetchSuccess = true;
   let counter = 0;
+  let fetchDelay = 2500;
   function fetchFunc() {
     return new Promise((resolve, reject) => {
       if (fetchSuccess) {
         // Increment counter to make it a unique URL.
         let url = `https://source.unsplash.com/random/200x200?q=${counter++}`;
-        setTimeout(() => resolve(url), 1000);
+        setTimeout(() => resolve(url), fetchDelay);
       } else {
-        setTimeout(() => reject(new Error('Fetch failed!')), 1000);
+        setTimeout(() => reject(new Error('Fetch failed!')), fetchDelay);
       }
     });
   }
 
   let imageSrc;
+  let receivedStale;
   let errorText;
   let latestTimestamp = 0;
-  function receiveFunc({ data, error, timestamp }: FetchResult<number>) {
+  function receiveFunc({ data, error, stale, timestamp }: FetchResult<number>) {
     latestTimestamp = timestamp;
     errorText = '';
+    receivedStale = Boolean(stale);
     if (error) {
       errorText = `Error: ${error.message}`;
     } else {
@@ -56,6 +65,12 @@
   }
 </script>
 
+<style>
+  a {
+    @apply underline;
+  }
+</style>
+
 <div class="container p-4">
   <div class="text-lg text-gray-800">SWR Xstate</div>
   <div>
@@ -73,19 +88,19 @@
 
   <div class="flex flex-col sm:flex-row font-sans mt-4">
     <div class="flex flex-col sm:px-4">
-      <label class="text-sm font-medium text-gray-800">
-        <input type="checkbox" bind:checked={enabled} />
-        Enable Fetcher
+      <label class="text-sm font-medium text-gray-800 mt-2 flex items-center">
+        <Switch bind:value={enabled} />
+        <span class="ml-1">Enable Fetcher</span>
       </label>
-      <label class="text-sm font-medium text-gray-800">
-        <input type="checkbox" bind:checked={permitted} />
-        Permit Fetching
+      <label class="text-sm font-medium text-gray-800 mt-2 flex items-center">
+        <Switch bind:value={permitted} />
+        <span class="ml-1">Permit Fetching</span>
       </label>
-      <label class="text-sm font-medium text-gray-800">
-        <input type="checkbox" bind:checked={fetchSuccess} />
-        Fetch Succeeds
+      <label class="text-sm font-medium text-gray-800 mt-2 flex items-center">
+        <Switch bind:value={fetchSuccess} />
+        <span class="ml-1">Fetch Succeeds</span>
       </label>
-      <span class="inline-flex rounded-md shadow-sm">
+      <span class="inline-flex rounded-md shadow-sm mt-2">
         <button
           type="button"
           class="inline-flex items-center px-2.5 py-1.5 border border-gray-300
@@ -97,12 +112,34 @@
           Force Refresh
         </button>
       </span>
+      <label class="text-sm mt-2 items-start flex flex-col space-y-1">
+        <div>
+          <span class="font-medium text-gray-800">Fetch Delay</span>
+          {fetchDelay}ms
+        </div>
+        <div>
+          <input
+            class="text-teal-600"
+            type="range"
+            min="0"
+            max="10000"
+            step="100"
+            bind:value={fetchDelay} />
+        </div>
+
+      </label>
     </div>
 
     <div class="flex-1 mt-2 sm:mt-0">
 
-      <div>Fetch Result: {errorText || imageSrc}</div>
       <div>
+        <span class="font-medium text-gray-800">Fetch Result:</span>
+        {errorText || imageSrc}
+        {#if receivedStale}
+          <span class="font-bold">(stale)</span>
+        {/if}
+      </div>
+      <div class="border" style="width:200px;height:200px">
         <img alt="image result" width="200" height="200" src={imageSrc} />
       </div>
       <div class="text-sm font-medium text-gray-800">
