@@ -2,6 +2,8 @@
   import { fetcher as createFetcher } from 'swr-xstate';
   import type { FetchResult } from 'swr-xstate';
 
+  let fetcherState = { context: {}, toStrings: () => '' };
+
   let fetcher = createFetcher({
     name: 'test-fetcher',
     key: 'key',
@@ -14,25 +16,29 @@
   });
 
   let fetchSuccess = true;
-  let nextVal = 0;
+  let counter = 0;
   function fetchFunc() {
     return new Promise((resolve, reject) => {
       if (fetchSuccess) {
-        setTimeout(() => resolve(++nextVal), 1000);
+        // Increment counter to make it a unique URL.
+        let url = `https://source.unsplash.com/random/200x200?q=${counter++}`;
+        setTimeout(() => resolve(url), 1000);
       } else {
         setTimeout(() => reject(new Error('Fetch failed!')), 1000);
       }
     });
   }
 
-  let latestData;
+  let imageSrc;
+  let errorText;
   let latestTimestamp = 0;
   function receiveFunc({ data, error, timestamp }: FetchResult<number>) {
     latestTimestamp = timestamp;
+    errorText = '';
     if (error) {
-      latestData = `Error: ${error.message}`;
+      errorText = `Error: ${error.message}`;
     } else {
-      latestData = data;
+      imageSrc = data;
     }
   }
 
@@ -42,51 +48,75 @@
   $: fetcher.setEnabled(enabled);
   $: fetcher.setPermitted(permitted);
 
-  let fetcherState;
-
   function debugFunc(msg) {
-    console.dir(msg);
+    // console.dir(msg);
     fetcherState = msg.state;
-    msg.state.toStrings;
-    msg.state.context.lastRefresh;
+    // msg.state.toStrings;
+    // msg.state.context.lastRefresh;
   }
 </script>
 
-<div class="flex flex-row mt-2">
-  <div class="flex flex-col px-4">
-    <label>
-      <input type="checkbox" bind:checked={enabled} />
-      Enable Fetcher
-    </label>
-    <label>
-      <input type="checkbox" bind:checked={permitted} />
-      Permit Fetching
-    </label>
-    <label>
-      <input type="checkbox" bind:checked={fetchSuccess} />
-      Fetch Succeeds
-    </label>
-    <span class="inline-flex rounded-md shadow-sm">
-      <button
-        type="button"
-        class="inline-flex items-center px-2.5 py-1.5 border border-gray-300
-        text-xs leading-4 font-medium rounded text-gray-700 bg-white
-        hover:text-gray-500 focus:outline-none focus:border-blue-300
-        focus:shadow-outline-blue active:text-gray-800 active:bg-gray-50
-        transition ease-in-out duration-150"
-        on:click={() => fetcher.refresh()}>
-        Force Refresh
-      </button>
-    </span>
+<div class="container p-4">
+  <div class="text-lg text-gray-800">SWR Xstate</div>
+  <div>
+    Built by
+    <a href="https://imfeld.dev">Daniel Imfeld.</a>
+    See it on
+    <a href="https://github.com/dimfeld/swr-xstate">Github.</a>
   </div>
 
-  <div class="flex-1">
+  <div>
+    This is a very simple example of automatic periodic fetching that gets a new
+    random Unsplash image every five seconds. You can use the checkboxes to
+    alter the behavior of the state machine.
+  </div>
 
-    <p>Latest Result: {latestData}</p>
-    <p>Current State: {fetcherState.toStrings()}</p>
-    <p>Last Refresh: {new Date(latestTimestamp)}</p>
-    <p>Store Enabled: {fetcherState.context.storeEnabled}</p>
-    <p>Browser Active: {fetcherState.context.browserEnabled}</p>
-    <p>Fetching Permitted: {fetcherState.context.permitted}</p>
+  <div class="flex flex-col sm:flex-row font-sans mt-4">
+    <div class="flex flex-col sm:px-4">
+      <label class="text-sm font-medium text-gray-800">
+        <input type="checkbox" bind:checked={enabled} />
+        Enable Fetcher
+      </label>
+      <label class="text-sm font-medium text-gray-800">
+        <input type="checkbox" bind:checked={permitted} />
+        Permit Fetching
+      </label>
+      <label class="text-sm font-medium text-gray-800">
+        <input type="checkbox" bind:checked={fetchSuccess} />
+        Fetch Succeeds
+      </label>
+      <span class="inline-flex rounded-md shadow-sm">
+        <button
+          type="button"
+          class="inline-flex items-center px-2.5 py-1.5 border border-gray-300
+          text-xs leading-4 font-medium rounded text-gray-700 bg-white
+          hover:text-gray-500 focus:outline-none focus:border-blue-300
+          focus:shadow-outline-blue active:text-gray-800 active:bg-gray-50
+          transition ease-in-out duration-150 font-sans"
+          on:click={() => fetcher.refresh()}>
+          Force Refresh
+        </button>
+      </span>
+    </div>
+
+    <div class="flex-1 mt-2 sm:mt-0">
+
+      <div>Fetch Result: {errorText || imageSrc}</div>
+      <div>
+        <img alt="image result" width="200" height="200" src={imageSrc} />
+      </div>
+      <div class="text-sm font-medium text-gray-800">
+        <div>
+          Current State:
+          <span class="font-bold">
+            {fetcherState && fetcherState.toStrings()}
+          </span>
+        </div>
+        <div>Last Refresh: {new Date(latestTimestamp).toTimeString()}</div>
+        <div>Store Enabled: {fetcherState.context.storeEnabled}</div>
+        <div>Browser Active: {fetcherState.context.browserEnabled}</div>
+        <div>Fetching Permitted: {fetcherState.context.permitted}</div>
+      </div>
+    </div>
   </div>
 </div>
