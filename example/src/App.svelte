@@ -1,10 +1,11 @@
 <script lang="typescript">
   import { fetcher as createFetcher } from 'swr-xstate';
+  import type { FetchResult } from 'swr-xstate';
 
   let fetcher = createFetcher({
     name: 'test-fetcher',
     key: 'key',
-    fetch: fetchFunc,
+    fetcher: fetchFunc,
     receive: receiveFunc,
     autoRefreshPeriod: 5000,
     debug: debugFunc,
@@ -25,7 +26,9 @@
   }
 
   let latestData;
-  function receiveFunc({ data, error }) {
+  let latestTimestamp = 0;
+  function receiveFunc({ data, error, timestamp }: FetchResult<number>) {
+    latestTimestamp = timestamp;
     if (error) {
       latestData = `Error: ${error.message}`;
     } else {
@@ -81,7 +84,7 @@
 
     <p>Latest Result: {latestData}</p>
     <p>Current State: {fetcherState.toStrings()}</p>
-    <p>Last Refresh: {new Date(fetcherState.context.lastRefresh)}</p>
+    <p>Last Refresh: {new Date(latestTimestamp)}</p>
     <p>Store Enabled: {fetcherState.context.storeEnabled}</p>
     <p>Browser Active: {fetcherState.context.browserEnabled}</p>
     <p>Fetching Permitted: {fetcherState.context.permitted}</p>

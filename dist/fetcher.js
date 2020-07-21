@@ -3,9 +3,9 @@ import { interpret, assign, Machine } from 'xstate';
 export const UNMODIFIED = Symbol('unmodified');
 export function fetcher({ name, key, autoRefreshPeriod = 60 * 60 * 1000, // default 1 hour
 maxBackoff = 60 * 1000, // default 1 minute
-fetch, receive, initialPermitted, initialEnabled, debug, }) {
+fetcher, receive, initialPermitted, initialEnabled, initialData, debug, }) {
     name = name || key;
-    const id = `fetcher-${name}`;
+    const id = `autofetcher-${name}`;
     const machineDef = Machine({
         id,
         initial: 'maybeStart',
@@ -15,6 +15,9 @@ fetch, receive, initialPermitted, initialEnabled, debug, }) {
             BROWSER_ENABLED: {
                 target: 'maybeStart',
                 actions: 'updateBrowserEnabled',
+            },
+            INITIAL_DATA: {
+                actions: 'receiveInitialData',
             },
         },
         states: {
@@ -91,7 +94,7 @@ fetch, receive, initialPermitted, initialEnabled, debug, }) {
             },
         },
         services: {
-            refresh: () => fetch(key),
+            refresh: () => fetcher(key),
         },
         actions: {
             clearLastRefresh: assign({
@@ -106,15 +109,32 @@ fetch, receive, initialPermitted, initialEnabled, debug, }) {
             updateBrowserEnabled: assign({
                 browserEnabled: (ctx, event) => event.data,
             }),
+            receiveInitialData: assign((context, { data }) => {
+                if (context.lastRefresh) {
+                    // We already got some new data, so don't send the stale data.
+                    return {};
+                }
+                let timestamp = data.timestamp || 0;
+                receive({
+                    data: data.data,
+                    stale: true,
+                    timestamp,
+                });
+                return {
+                    // If the initial data included a timestamp, put it into lastRefresh.
+                    lastRefresh: timestamp,
+                };
+            }),
             incrementRetry: assign({ retries: (context) => context.retries + 1 }),
             refreshDone: assign((context, event) => {
+                let lastRefresh = Date.now();
                 let updated = {
-                    lastRefresh: Date.now(),
+                    lastRefresh,
                     retries: 0,
                     reportedError: false,
                 };
                 if (event.data !== UNMODIFIED && context.permitted) {
-                    receive({ data: event.data });
+                    receive({ data: event.data, timestamp: lastRefresh });
                 }
                 return updated;
             }),
@@ -123,13 +143,13 @@ fetch, receive, initialPermitted, initialEnabled, debug, }) {
                 // Otherwise report it.
                 if (!context.reportedError &&
                     browserStateModule.isOnline()) {
-                    receive({ error: event.data });
+                    receive({ error: event.data, timestamp: Date.now() });
                 }
                 return {
                     reportedError: true,
                 };
             }),
-            clearData: () => receive({ data: null }),
+            clearData: () => receive({ data: null, timestamp: Date.now() }),
         },
         guards: {
             not_permitted_to_refresh: (ctx) => !ctx.permitted,
@@ -164,6 +184,16 @@ fetch, receive, initialPermitted, initialEnabled, debug, }) {
         let enabled = state.focused && state.online && state.visible;
         machine.send({ type: 'BROWSER_ENABLED', data: enabled });
     });
+    async function fetchInitial() {
+        let data = await initialData(key);
+        let d = data?.data;
+        if (d !== null && d !== undefined) {
+            machine.send('INITIAL_DATA', data);
+        }
+    }
+    if (initialData) {
+        fetchInitial();
+    }
     return {
         /** Enable or disable the fetcher. This is usually linked to whether there is anything that actually cares about this
          * data or not. */

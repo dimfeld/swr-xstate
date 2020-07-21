@@ -6,6 +6,8 @@ export const UNMODIFIED = Symbol('unmodified');
 export interface FetchResult<T> {
   data?: T;
   error?: Error;
+  /** When this data was fetched */
+  timestamp: number;
   /** True if this is the stale data. Absent otherwise. */
   stale? : boolean;
 }
@@ -16,7 +18,12 @@ export interface DebugMessage {
   event: AnyEventObject;
 }
 
-export interface FetcherOptions<
+export interface InitialData<T> {
+  data: T;
+  timestamp?: number;
+}
+
+export interface AutoFetcherOptions<
   T
 > {
   /** A string that can uniquely identify the resource to be fetched. This is
@@ -28,10 +35,10 @@ export interface FetcherOptions<
   name?: string;
 
   /** A function that should fetch the "stale" data. */
-  initialData?: (key:string) => Promise<T|null>;
+  initialData?: (key:string) => Promise<InitialData<T>|null>;
 
   /** `fetcher` is called periodically to retrieve new data */
-  fetch: (key: string) => Promise<T|Symbol>,
+  fetcher: (key: string) => Promise<T|Symbol>,
   /** `receiver` is called when new data has arrived. */
   receive: (result : FetchResult<T>) => T;
 
@@ -54,7 +61,7 @@ export interface FetcherOptions<
   debug?: (msg : DebugMessage) => any;
 }
 
-interface Context {
+export interface Context {
   lastRefresh: number;
   retries: number;
   reportedError: boolean;
@@ -71,16 +78,16 @@ export function fetcher<
     key,
     autoRefreshPeriod = 60 * 60 * 1000, // default 1 hour
     maxBackoff = 60 * 1000, // default 1 minute
-    fetch,
+    fetcher,
     receive,
     initialPermitted,
     initialEnabled,
     initialData,
     debug,
-  }: FetcherOptions<T>
+  }: AutoFetcherOptions<T>
 ) {
   name = name || key;
-  const id = `fetcher-${name}`;
+  const id = `autofetcher-${name}`;
 
   const machineDef = Machine<Context>(
     {
@@ -172,7 +179,7 @@ export function fetcher<
         },
       },
       services: {
-        refresh: () => fetch(key),
+        refresh: () => fetcher(key),
       },
       actions: {
         clearLastRefresh: assign({
@@ -187,27 +194,35 @@ export function fetcher<
         updateBrowserEnabled: assign({
           browserEnabled: (ctx, event) => event.data,
         }),
-        receiveInitialData: (context: Context, event) => {
+        receiveInitialData: assign((context: Context, {data}) => {
           if(context.lastRefresh) {
             // We already got some new data, so don't send the stale data.
-            return;
+            return {};
           }
 
+          let timestamp = data.timestamp || 0;
           receive({
-            data: event.data,
+            data: data.data,
             stale: true,
+            timestamp,
           });
-        },
+
+          return {
+            // If the initial data included a timestamp, put it into lastRefresh.
+            lastRefresh: timestamp,
+          };
+        }),
         incrementRetry: assign({ retries: (context) => context.retries + 1 }),
         refreshDone: assign((context: Context, event) => {
+          let lastRefresh = Date.now();
           let updated = {
-            lastRefresh: Date.now(),
+            lastRefresh,
             retries: 0,
             reportedError: false,
           };
 
           if(event.data !== UNMODIFIED && context.permitted) {
-            receive({ data: event.data });
+            receive({ data: event.data, timestamp: lastRefresh });
           }
 
           return updated;
@@ -219,14 +234,14 @@ export function fetcher<
             !context.reportedError &&
             browserStateModule.isOnline()
           ) {
-            receive({ error: event.data });
+            receive({ error: event.data, timestamp: Date.now() });
           }
 
           return {
             reportedError: true,
           };
         }),
-        clearData: () => receive({ data: null }),
+        clearData: () => receive({ data: null, timestamp: Date.now() }),
       },
       guards: {
         not_permitted_to_refresh: (ctx) => !ctx.permitted,
@@ -270,15 +285,16 @@ export function fetcher<
   });
 
   async function fetchInitial() {
-    if(initialData) {
-      let data = await initialData(key);
-      if(data !== null && data !== undefined) {
-        machine.send('INITIAL_DATA', data);
-      }
+    let data = await initialData(key);
+    let d = data?.data;
+    if(d !== null && d !== undefined) {
+      machine.send('INITIAL_DATA', data);
     }
   }
 
-  fetchInitial();
+  if(initialData) {
+    fetchInitial();
+  }
 
   return {
     /** Enable or disable the fetcher. This is usually linked to whether there is anything that actually cares about this

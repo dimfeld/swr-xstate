@@ -7,7 +7,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import postcss from 'rollup-plugin-postcss';
-import babel from 'rollup-plugin-babel';
+import babel from '@rollup/plugin-babel';
 import html, { makeHtmlAttributes } from '@rollup/plugin-html';
 import copy from 'rollup-plugin-copy';
 
