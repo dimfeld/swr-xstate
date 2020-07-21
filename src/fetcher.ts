@@ -299,7 +299,7 @@ export function fetcher<
     let data = await initialData(key);
     let d = data?.data;
     if(d !== null && d !== undefined) {
-      machine.send('INITIAL_DATA', data);
+      machine.send('INITIAL_DATA', {data});
     }
   }
 

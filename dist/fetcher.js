@@ -188,7 +188,7 @@ fetcher, receive, initialPermitted, initialEnabled, initialData, debug, }) {
         let data = await initialData(key);
         let d = data?.data;
         if (d !== null && d !== undefined) {
-            machine.send('INITIAL_DATA', data);
+            machine.send('INITIAL_DATA', { data });
         }
     }
     if (initialData) {
