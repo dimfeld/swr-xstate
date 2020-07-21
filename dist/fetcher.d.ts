@@ -28,8 +28,8 @@ export interface AutoFetcherOptions<T> {
     initialData?: (key: string) => Promise<InitialData<T> | null>;
     /** `fetcher` is called periodically to retrieve new data */
     fetcher: (key: string) => Promise<T | Symbol>;
-    /** `receiver` is called when new data has arrived. */
-    receive: (result: FetchResult<T>) => T;
+    /** `receive` is called when new data has arrived. */
+    receive: (result: FetchResult<T>) => any;
     /** Number of milliseconds between refresh attempts, unless refresh is forced. */
     autoRefreshPeriod?: number;
     /** Maximum number of milliseconds to wait between refresh attempts in case of error. Defaults to 1 minute. */
@@ -44,6 +44,16 @@ export interface AutoFetcherOptions<T> {
     /** Given an object, this function should print out debug information. This can be `console.log` if you want, or something like the `debug` module. Called on every state transition. */
     debug?: (msg: DebugMessage) => any;
 }
+export interface AutoFetcher {
+    /** Set if fetching is enabled. It might be disabled if you know that nothing is using this data right now. */
+    setEnabled: (enabled: boolean) => void;
+    /** Set if fetching is permitted. Fetching might not be permitted if the user is not logged in or lacks
+     * proper permissions for this endpoint, for example. */
+    setPermitted: (permitted: boolean) => void;
+    /** Force a refresh. This will not do anything if fetching has been disabled via `setPermitted`. */
+    refresh: () => void;
+    destroy: () => void;
+}
 export interface Context {
     lastRefresh: number;
     retries: number;
@@ -54,15 +64,5 @@ export interface Context {
 }
 export declare function fetcher<T>({ name, key, autoRefreshPeriod, // default 1 hour
 maxBackoff, // default 1 minute
-fetcher, receive, initialPermitted, initialEnabled, initialData, debug, }: AutoFetcherOptions<T>): {
-    /** Enable or disable the fetcher. This is usually linked to whether there is anything that actually cares about this
-     * data or not. */
-    setEnabled: (enabled: boolean) => State<Context, AnyEventObject, any, any>;
-    /** Set if fetching is permitted. Fetching might not be permitted if the user is not logged in or lacks
-     * proper permissions for this endpoint, for example. */
-    setPermitted: (permitted: boolean) => State<Context, AnyEventObject, any, any>;
-    /** Force a refresh. This will not do anything if fetching has been disabled via `setPermitted`. */
-    refresh: () => State<Context, AnyEventObject, any, any>;
-    destroy: () => void;
-};
+fetcher, receive, initialPermitted, initialEnabled, initialData, debug, }: AutoFetcherOptions<T>): AutoFetcher;
 //# sourceMappingURL=fetcher.d.ts.map

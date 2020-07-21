@@ -39,8 +39,8 @@ export interface AutoFetcherOptions<
 
   /** `fetcher` is called periodically to retrieve new data */
   fetcher: (key: string) => Promise<T|Symbol>,
-  /** `receiver` is called when new data has arrived. */
-  receive: (result : FetchResult<T>) => T;
+  /** `receive` is called when new data has arrived. */
+  receive: (result : FetchResult<T>) => any;
 
   /** Number of milliseconds between refresh attempts, unless refresh is forced. */
   autoRefreshPeriod?: number;
@@ -59,6 +59,17 @@ export interface AutoFetcherOptions<
 
   /** Given an object, this function should print out debug information. This can be `console.log` if you want, or something like the `debug` module. Called on every state transition. */
   debug?: (msg : DebugMessage) => any;
+}
+
+export interface AutoFetcher {
+  /** Set if fetching is enabled. It might be disabled if you know that nothing is using this data right now. */
+  setEnabled: (enabled : boolean) => void;
+  /** Set if fetching is permitted. Fetching might not be permitted if the user is not logged in or lacks
+   * proper permissions for this endpoint, for example. */
+  setPermitted: (permitted: boolean) => void;
+  /** Force a refresh. This will not do anything if fetching has been disabled via `setPermitted`. */
+  refresh: () => void;
+  destroy: () => void;
 }
 
 export interface Context {
@@ -85,7 +96,7 @@ export function fetcher<
     initialData,
     debug,
   }: AutoFetcherOptions<T>
-) {
+) : AutoFetcher {
   name = name || key;
   const id = `autofetcher-${name}`;
 
