@@ -1,6 +1,6 @@
 This is an implementation of a stale-while-revalidate data fetcher implemented with the [XState](https://xstate.js.org) library. It implements many of the features found in other popular SWR libraries, such as periodic updates and disabling the fetcher when the browser is not focused.
 
-I wrote about the design and implementation on [my website](https://imfeld.dev/writing/swr_with_xstate).
+I wrote about the design and implementation on [my website](https://imfeld.dev/writing/swr_with_xstate), and there's also a simple [example site](https://swr-xstate.imfeld.dev).
 
 ```typescript
 /** The fetcher function can return this if it tried to fetch and found the data was unchanged. */
