@@ -277,8 +277,8 @@ export function fetcher<
       retries: 0,
       reportedError: false,
       browserEnabled: true,
-      storeEnabled: initialEnabled || true,
-      permitted: initialPermitted || true,
+      storeEnabled: initialEnabled === false ? false : true,
+      permitted: initialPermitted === false ? false : true,
     }
   );
 

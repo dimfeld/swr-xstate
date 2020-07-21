@@ -171,8 +171,8 @@ fetcher, receive, initialPermitted, initialEnabled, initialData, debug, }) {
         retries: 0,
         reportedError: false,
         browserEnabled: true,
-        storeEnabled: initialEnabled || true,
-        permitted: initialPermitted || true,
+        storeEnabled: initialEnabled === false ? false : true,
+        permitted: initialPermitted === false ? false : true,
     });
     let machine = interpret(machineDef).start();
     if (debug) {
