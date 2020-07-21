@@ -5042,10 +5042,10 @@ svgo@^1.0.0:
     unquote "~1.1.1"
     util.promisify "~1.0.0"
 
-swr-xstate@^1:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/swr-xstate/-/swr-xstate-1.0.0.tgz#daae5264879c79bcf4a580abef7856c45c667a9e"
-  integrity sha512-IsWoE/XyVn/kQWr/Yh9LeCdv2sArV0ZZFQ3Lp/a+fGNoyLHTecknZ1LED8T5c2FUIj2LnYRqktSdO2wmQO+CQQ==
+swr-xstate@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/swr-xstate/-/swr-xstate-1.0.1.tgz#0bd9fd1c1f5a727325e75ca695c6eb3ea1192a47"
+  integrity sha512-ACn1VIJvF3syihUkelSr/PNOvKnrMHK5GNhEeFV6CghnGi7v9xEjl8TJCnER3+xd6o2UmkfVvrZGzVnqswbdiw==
   dependencies:
     xstate "^4.11.0"
 
