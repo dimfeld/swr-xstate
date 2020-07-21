@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "sirv-cli": "^0.4.4",
-    "swr-xstate": "../"
+    "swr-xstate": "^1"
   },
   "devDependencies": {
     "@babel/core": "^7.9.0",
